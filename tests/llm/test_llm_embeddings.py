@@ -81,6 +81,22 @@ def test_format_embedding_for_db_mongodb_no_bson():
     assert list(unpacked) == pytest.approx(embedding)
 
 
+def test_format_embedding_for_db_oceanbase_uses_pyobvector(mocker):
+    embedding = [1.0, 2.0, 3.0]
+    mock_vector = mocker.MagicMock()
+    mock_vector._to_db.return_value = "vector-bytes"
+    mock_util = mocker.MagicMock(Vector=mock_vector)
+    mock_pkg = mocker.MagicMock(util=mock_util)
+    mocker.patch.dict(
+        "sys.modules", {"pyobvector": mock_pkg, "pyobvector.util": mock_util}
+    )
+
+    result = format_embedding_for_db(embedding, "oceanbase")
+
+    assert result == "vector-bytes"
+    mock_vector._to_db.assert_called_once_with(embedding)
+
+
 def test_format_embedding_for_db_unknown_dialect():
     embedding = [1.0, 2.0, 3.0]
     result = format_embedding_for_db(embedding, "unknown_db")
